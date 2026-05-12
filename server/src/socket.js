@@ -7,6 +7,7 @@ import {
   updateRoomCode,
   updateRoomLanguage
 } from './roomManager.js';
+import { log } from './utils/logger.js';
 
 // Map to track which room each socket is in
 const socketRoomMap = {};
@@ -20,7 +21,7 @@ export function initSocket(httpServer) {
   });
 
   io.on('connection', (socket) => {
-    console.log(`🔌 User connected: ${socket.id}`);
+    log.socket('connection', { socketId: socket.id });
     
     // Connection health check
     socket.on('ping', (timestamp, callback) => {
@@ -48,7 +49,7 @@ export function initSocket(httpServer) {
       // Tell everyone else in the room a new user arrived
       socket.to(roomId).emit('user-joined', { user, users: room.users });
 
-      console.log(`👤 ${username} joined room ${roomId}`);
+      log.room('joined', roomId, { username, socketId: socket.id, userCount: room.users.length });
     });
 
     // ── CODE CHANGE ────────────────────────────────────────────
@@ -83,7 +84,7 @@ export function initSocket(httpServer) {
 
     // ── DISCONNECT ─────────────────────────────────────────────
     socket.on('disconnect', async (reason) => {
-      console.log(`❌ User disconnected: ${socket.id}, reason: ${reason}`);
+      log.socket('disconnect', { socketId: socket.id, reason });
       const roomId = socketRoomMap[socket.id];
       if (roomId) {
         const room = await removeUserFromRoom(roomId, socket.id);
