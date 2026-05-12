@@ -1,5 +1,6 @@
 // client/src/components/Sidebar.jsx
 import { useState, useRef, useEffect } from 'react';
+import { SkeletonUser, SkeletonText } from './LoadingStates';
 
 export default function Sidebar({ users, messages, onSendMessage, roomId }) {
   const [input, setInput] = useState('');
@@ -44,14 +45,22 @@ export default function Sidebar({ users, messages, onSendMessage, roomId }) {
         <div style={{ color: '#888', fontSize: '11px', marginBottom: '8px' }}>
           USERS ({users.length})
         </div>
-        {users.map(user => (
-          <div key={user.id} style={{ display: 'flex', alignItems: 'center',
-                                      gap: '8px', marginBottom: '6px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%',
-                          background: user.color || '#4ECDC4' }} />
-            <span style={{ color: '#ccc', fontSize: '13px' }}>{user.username}</span>
-          </div>
-        ))}
+        {users.length === 0 ? (
+          // Show skeleton while loading
+          <>
+            <SkeletonUser />
+            <SkeletonUser />
+          </>
+        ) : (
+          users.map(user => (
+            <div key={user.id} style={{ display: 'flex', alignItems: 'center',
+                                        gap: '8px', marginBottom: '6px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%',
+                            background: user.color || '#4ECDC4' }} />
+              <span style={{ color: '#ccc', fontSize: '13px' }}>{user.username}</span>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Chat Messages */}

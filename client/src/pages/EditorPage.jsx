@@ -1,10 +1,13 @@
 // client/src/pages/EditorPage.jsx
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '../components/Editor';
 import Sidebar from '../components/Sidebar';
 import ConnectionStatus from '../components/ConnectionStatus';
+import { ConnectionLoader, RetryError } from '../components/LoadingStates';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { useSocket } from '../hooks/useSocket';
+import { useDelayedLoading } from '../hooks/useAsyncData';
 
 export default function EditorPage() {
   const { roomId } = useParams();  // Gets roomId from the URL
@@ -17,10 +20,26 @@ export default function EditorPage() {
     return null;
   }
 
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [connectionError, setConnectionError] = useState(null);
+  
   const {
     code, language, users, messages, cursors, connectionStatus,
     handleCodeChange, handleLanguageChange, sendMessage, handleCursorMove, flushPendingChanges
   } = useSocket(roomId, username);
+  
+  const showLoading = useDelayedLoading(initialLoad && connectionStatus === 'connecting', 500);
+  
+  // Track initial connection
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      setInitialLoad(false);
+      setConnectionError(null);
+    } else if (connectionStatus === 'error') {
+      setInitialLoad(false);
+      setConnectionError(new Error('Failed to connect to server'));
+    }
+  }, [connectionStatus]);
   
   // Flush pending changes before page unload
   useEffect(() => {
@@ -41,12 +60,47 @@ export default function EditorPage() {
     };
   }, [flushPendingChanges, connectionStatus]);
 
+  // Show loading state during initial connection
+  if (showLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: '#1e1e1e'
+      }}>
+        <ConnectionLoader status={`Joining room ${roomId}...`} />
+      </div>
+    );
+  }
+  
+  // Show error state if connection failed
+  if (connectionError && connectionStatus === 'error') {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: '#1e1e1e'
+      }}>
+        <RetryError 
+          error={connectionError}
+          message="Failed to join room"
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+  
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh',
-                  background: '#1e1e1e', color: 'white' }}>
-      
-      {/* Connection Status Indicator */}
-      <ConnectionStatus status={connectionStatus} />
+    <ErrorBoundary>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh',
+                    background: '#1e1e1e', color: 'white' }}>
+        
+        {/* Connection Status Indicator */}
+        <ConnectionStatus status={connectionStatus} />
 
       {/* Top Bar */}
       <div style={{ background: '#323233', padding: '8px 16px', display: 'flex',
@@ -86,5 +140,6 @@ export default function EditorPage() {
         />
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
