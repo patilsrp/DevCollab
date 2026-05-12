@@ -1,7 +1,9 @@
 // client/src/pages/EditorPage.jsx
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '../components/Editor';
 import Sidebar from '../components/Sidebar';
+import ConnectionStatus from '../components/ConnectionStatus';
 import { useSocket } from '../hooks/useSocket';
 
 export default function EditorPage() {
@@ -16,13 +18,35 @@ export default function EditorPage() {
   }
 
   const {
-    code, language, users, messages, cursors,
-    handleCodeChange, handleLanguageChange, sendMessage, handleCursorMove
+    code, language, users, messages, cursors, connectionStatus,
+    handleCodeChange, handleLanguageChange, sendMessage, handleCursorMove, flushPendingChanges
   } = useSocket(roomId, username);
+  
+  // Flush pending changes before page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      flushPendingChanges();
+      // Optionally show a warning if there are pending changes
+      if (connectionStatus === 'connected') {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      flushPendingChanges();
+    };
+  }, [flushPendingChanges, connectionStatus]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh',
                   background: '#1e1e1e', color: 'white' }}>
+      
+      {/* Connection Status Indicator */}
+      <ConnectionStatus status={connectionStatus} />
 
       {/* Top Bar */}
       <div style={{ background: '#323233', padding: '8px 16px', display: 'flex',
@@ -35,7 +59,10 @@ export default function EditorPage() {
           {users.length} user{users.length !== 1 ? 's' : ''} connected
         </span>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => {
+            flushPendingChanges();
+            navigate('/');
+          }}
           style={{ background: 'transparent', border: '1px solid #555', color: '#ccc',
                    padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}>
           Leave Room
