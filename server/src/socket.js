@@ -21,6 +21,17 @@ export function initSocket(httpServer) {
 
   io.on('connection', (socket) => {
     console.log(`🔌 User connected: ${socket.id}`);
+    
+    // Connection health check
+    socket.on('ping', (timestamp, callback) => {
+      if (callback) {
+        callback({
+          timestamp,
+          latency: Date.now() - timestamp,
+          serverTime: Date.now()
+        });
+      }
+    });
 
     // ── JOIN ROOM ──────────────────────────────────────────────
     // Fired when a user navigates to /editor/:roomId
@@ -71,14 +82,14 @@ export function initSocket(httpServer) {
     });
 
     // ── DISCONNECT ─────────────────────────────────────────────
-    socket.on('disconnect', async () => {
+    socket.on('disconnect', async (reason) => {
+      console.log(`❌ User disconnected: ${socket.id}, reason: ${reason}`);
       const roomId = socketRoomMap[socket.id];
       if (roomId) {
         const room = await removeUserFromRoom(roomId, socket.id);
         io.to(roomId).emit('user-left', { socketId: socket.id, users: room.users });
         delete socketRoomMap[socket.id];
       }
-      console.log(`❌ User disconnected: ${socket.id}`);
     });
   });
 
