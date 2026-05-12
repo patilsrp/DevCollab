@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initSocket } from './socket.js';
+import roomRoutes from './routes/roomRoutes.js';
 
 dotenv.config();
 
@@ -12,6 +13,9 @@ const httpServer = createServer(app);  // Important: Socket.IO needs the raw HTT
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 app.use(express.json());
+
+// API Routes
+app.use('/api', roomRoutes);
 
 // Health check endpoint — useful for deployment
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
