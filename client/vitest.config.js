@@ -1,0 +1,28 @@
+// client/vitest.config.js
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.js'],
+    css: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'tests/',
+        'dist/',
+        '**/*.config.js',
+        '**/*.test.{js,jsx}',
+        '**/*.spec.{js,jsx}',
+        'src/main.jsx'
+      ]
+    },
+    include: ['tests/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    testTimeout: 10000
+  }
+});
