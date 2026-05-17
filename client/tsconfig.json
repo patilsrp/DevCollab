@@ -17,16 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@pages/*": ["src/pages/*"],
-      "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
