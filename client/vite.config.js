@@ -25,20 +25,22 @@ export default defineConfig(({ mode }) => ({
     target: 'es2020',
     cssCodeSplit: true,
     sourcemap: mode === 'development',
-    minify: 'esbuild',
+    // Vite 8 uses Rolldown's built-in minifier by default — no need to specify.
     chunkSizeWarningLimit: 600,
 
     rollupOptions: {
       output: {
-        // Manual chunking: split heavy/stable dependencies into their own chunks
-        // so user code changes don't bust the cache for vendor code.
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'monaco-editor': ['@monaco-editor/react'],
-          'socket-vendor': ['socket.io-client'],
-          'utils-vendor': ['nanoid', 'uuid'],
+        // Manual chunking: split heavy/stable deps into their own chunks so
+        // user-code changes don't bust the browser cache for vendor code.
+        // Function form is required by Vite 8 / Rollup 5+.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('/react-router')) return 'react-vendor';
+          if (id.includes('/react-dom/') || /\/react\//.test(id)) return 'react-vendor';
+          if (id.includes('@monaco-editor') || id.includes('monaco-editor')) return 'monaco-editor';
+          if (id.includes('socket.io-client') || id.includes('engine.io-client')) return 'socket-vendor';
+          if (id.includes('nanoid')) return 'utils-vendor';
         },
-        // Stable, content-hashed filenames for long-term caching
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
