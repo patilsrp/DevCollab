@@ -1,0 +1,29 @@
+# Render.com deployment config
+# https://render.com/docs/yaml-spec
+#
+# To deploy:
+#   1. Push this file to GitHub
+#   2. Go to render.com → New → Blueprint → connect repo
+#   3. Set environment variables in the Render dashboard (REDIS_URL, CLIENT_URL)
+
+services:
+  - type: web
+    name: devcollab-server
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Set these manually in Render dashboard (sensitive / per-environment)
+      - key: REDIS_URL
+        sync: false
+      - key: CLIENT_URL
+        sync: false

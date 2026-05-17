@@ -15,8 +15,33 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
-app.use(express.json());
+// CLIENT_URL accepts a comma-separated list so the deployed frontend and
+// localhost can both connect during development/preview.
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow same-origin/curl requests (no Origin header)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow Vercel preview deployments (*.vercel.app) if the prod URL is on Vercel
+      if (allowedOrigins.some((o) => o.endsWith('.vercel.app')) && origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+  })
+);
+
+// Trust proxy (Render/Vercel/Heroku terminate TLS upstream)
+app.set('trust proxy', 1);
+
+app.use(express.json({ limit: '200kb' }));
 
 // HTTP request logging
 app.use(httpLogger);

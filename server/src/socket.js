@@ -14,11 +14,27 @@ import { metrics } from './utils/metrics.js';
 const socketRoomMap = {};
 
 export function initSocket(httpServer) {
+  const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
-      methods: ['GET', 'POST']
-    }
+      origin(origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (allowedOrigins.some((o) => o.endsWith('.vercel.app')) && origin.endsWith('.vercel.app')) {
+          return callback(null, true);
+        }
+        callback(new Error(`Origin ${origin} not allowed`));
+      },
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
+    // Render free tier sleeps after 15min idle, so allow generous reconnection
+    pingTimeout: 30000,
+    pingInterval: 25000,
   });
 
   io.on('connection', (socket) => {
