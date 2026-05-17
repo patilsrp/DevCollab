@@ -1,0 +1,40 @@
+# Monitoring stack: Prometheus + Grafana.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: devcollab-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - devcollab-net
+    depends_on:
+      - server
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: devcollab-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - devcollab-net
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:

@@ -8,6 +8,7 @@ import { initSocket } from './socket.js';
 import roomRoutes from './routes/roomRoutes.js';
 import { log, httpLogger, errorLogger } from './utils/logger.js';
 import { swaggerSpec, socketEventsDocs } from './swagger.js';
+import { metrics, metricsMiddleware } from './utils/metrics.js';
 
 dotenv.config();
 
@@ -19,6 +20,34 @@ app.use(express.json());
 
 // HTTP request logging
 app.use(httpLogger);
+
+// Prometheus metrics middleware
+app.use(metricsMiddleware);
+
+/**
+ * @swagger
+ * /metrics:
+ *   get:
+ *     summary: Prometheus-compatible metrics endpoint
+ *     description: Returns server metrics in Prometheus exposition format
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Metrics in Prometheus text format
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ */
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', metrics.register.contentType);
+    res.end(await metrics.getMetrics());
+  } catch (error) {
+    log.error('Failed to collect metrics', { error: error.message });
+    res.status(500).end();
+  }
+});
 
 // API Documentation
 app.use(

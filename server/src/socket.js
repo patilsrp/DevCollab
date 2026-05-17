@@ -8,6 +8,7 @@ import {
   updateRoomLanguage
 } from './roomManager.js';
 import { log } from './utils/logger.js';
+import { metrics } from './utils/metrics.js';
 
 // Map to track which room each socket is in
 const socketRoomMap = {};
@@ -22,7 +23,8 @@ export function initSocket(httpServer) {
 
   io.on('connection', (socket) => {
     log.socket('connection', { socketId: socket.id });
-    
+    metrics.recordConnection();
+
     // Connection health check
     socket.on('ping', (timestamp, callback) => {
       if (callback) {
@@ -35,40 +37,41 @@ export function initSocket(httpServer) {
     });
 
     // ── JOIN ROOM ──────────────────────────────────────────────
-    // Fired when a user navigates to /editor/:roomId
     socket.on('join-room', async ({ roomId, username }) => {
-      socket.join(roomId);  // Socket.IO "room" — messages only go to members
+      metrics.recordSocketEvent('join-room');
+      socket.join(roomId);
       socketRoomMap[socket.id] = roomId;
 
       const user = { id: socket.id, socketId: socket.id, username, color: getRandomColor() };
       const room = await addUserToRoom(roomId, user);
 
-      // Send the new user the current room state (existing code + language)
       socket.emit('room-joined', room);
-
-      // Tell everyone else in the room a new user arrived
       socket.to(roomId).emit('user-joined', { user, users: room.users });
+
+      metrics.recordRoomOperation('join');
+      metrics.observeUsersPerRoom(room.users.length);
+      metrics.setActiveRooms(io.sockets.adapter.rooms.size);
 
       log.room('joined', roomId, { username, socketId: socket.id, userCount: room.users.length });
     });
 
     // ── CODE CHANGE ────────────────────────────────────────────
-    // Fired every time someone types in the editor
     socket.on('code-change', async ({ roomId, code }) => {
+      metrics.recordSocketEvent('code-change');
       await updateRoomCode(roomId, code);
-      // Broadcast to everyone EXCEPT the sender (they already have the update)
       socket.to(roomId).emit('code-update', code);
     });
 
     // ── LANGUAGE CHANGE ────────────────────────────────────────
     socket.on('language-change', async ({ roomId, language }) => {
+      metrics.recordSocketEvent('language-change');
       await updateRoomLanguage(roomId, language);
       socket.to(roomId).emit('language-update', language);
     });
 
     // ── CHAT MESSAGE ───────────────────────────────────────────
     socket.on('send-message', ({ roomId, message, username }) => {
-      // Broadcast to EVERYONE including sender (so they see their own message)
+      metrics.recordSocketEvent('send-message');
       io.to(roomId).emit('receive-message', {
         username,
         message,
@@ -77,19 +80,23 @@ export function initSocket(httpServer) {
     });
 
     // ── CURSOR POSITION ────────────────────────────────────────
-    // Fired when cursor moves in the editor
     socket.on('cursor-move', ({ roomId, cursor, username }) => {
+      metrics.recordSocketEvent('cursor-move');
       socket.to(roomId).emit('cursor-update', { socketId: socket.id, cursor, username });
     });
 
     // ── DISCONNECT ─────────────────────────────────────────────
     socket.on('disconnect', async (reason) => {
       log.socket('disconnect', { socketId: socket.id, reason });
+      metrics.recordDisconnection(reason);
+
       const roomId = socketRoomMap[socket.id];
       if (roomId) {
         const room = await removeUserFromRoom(roomId, socket.id);
         io.to(roomId).emit('user-left', { socketId: socket.id, users: room.users });
         delete socketRoomMap[socket.id];
+        metrics.recordRoomOperation('leave');
+        metrics.setActiveRooms(io.sockets.adapter.rooms.size);
       }
     });
   });
