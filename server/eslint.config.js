@@ -1,39 +1,33 @@
+// server/eslint.config.js
 import js from '@eslint/js';
 import globals from 'globals';
-import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
 import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
-import { defineConfig, globalIgnores } from 'eslint/config';
 
-export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'node_modules']),
+export default [
+  js.configs.recommended,
+  prettierConfig,
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-      prettierConfig,
-    ],
+    files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {
       ecmaVersion: 2022,
-      globals: { ...globals.browser, ...globals.es2022 },
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
-      },
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+        ...globals.es2022
+      }
     },
     plugins: {
-      prettier: prettierPlugin,
+      prettier: prettierPlugin
     },
     rules: {
-      // Prettier integration
+      // Prettier
       'prettier/prettier': 'warn',
 
       // Best practices
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-undef': 'error',
       'no-var': 'error',
       'prefer-const': 'warn',
       'prefer-arrow-callback': 'warn',
@@ -41,26 +35,29 @@ export default defineConfig([
       'no-duplicate-imports': 'error',
 
       // Code quality
-      eqeqeq: ['error', 'always'],
-      curly: ['error', 'multi-line'],
+      'eqeqeq': ['error', 'always'],
+      'curly': ['error', 'multi-line'],
       'no-eval': 'error',
       'no-implied-eval': 'error',
+      'no-throw-literal': 'error',
+      'no-return-await': 'warn',
+      'require-await': 'warn',
 
-      // React specific
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      // Async/await
+      'no-async-promise-executor': 'error',
+      'no-await-in-loop': 'warn',
 
       // Style
       'arrow-body-style': ['warn', 'as-needed'],
       'object-shorthand': 'warn',
       'no-multiple-empty-lines': ['warn', { max: 2 }],
-    },
+      'no-trailing-spaces': 'warn'
+    }
   },
   {
-    files: ['tests/**/*.{js,jsx,ts,tsx}'],
+    files: ['tests/**/*.{js,ts}'],
     languageOptions: {
       globals: {
-        ...globals.browser,
         ...globals.node,
         describe: 'readonly',
         it: 'readonly',
@@ -69,11 +66,14 @@ export default defineConfig([
         afterEach: 'readonly',
         beforeAll: 'readonly',
         afterAll: 'readonly',
-        vi: 'readonly',
-      },
+        vi: 'readonly'
+      }
     },
     rules: {
-      'no-console': 'off',
-    },
+      'no-console': 'off'
+    }
   },
-]);
+  {
+    ignores: ['node_modules/', 'dist/', 'coverage/', 'logs/']
+  }
+];
