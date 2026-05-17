@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:analyze": "cross-env ANALYZE=true vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
@@ -23,8 +24,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0",
-    "socket.io-client": "^4.8.3",
-    "uuid": "^14.0.0"
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -36,6 +36,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.6",
     "@vitest/ui": "^4.1.6",
+    "cross-env": "^10.1.0",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -44,8 +45,10 @@
     "globals": "^17.5.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.8.3",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
+    "vite-plugin-compression": "^0.5.1",
     "vitest": "^4.1.6"
   }
 }
