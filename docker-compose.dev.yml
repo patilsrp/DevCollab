@@ -1,0 +1,26 @@
+# Development override: enables hot reloading and source mounts.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  server:
+    build:
+      context: ./server
+      target: builder
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./server/src:/app/src
+      - /app/node_modules
+
+  client:
+    build:
+      context: ./client
+      target: builder
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_SERVER_URL: http://localhost:3001
+    volumes:
+      - ./client/src:/app/src
+      - /app/node_modules
