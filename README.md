@@ -1,270 +1,218 @@
 # DevCollab - Real-Time Collaborative Code Editor
 
-A powerful browser-based collaborative coding platform that enables multiple developers to write, edit, and discuss code in real-time. Built with modern web technologies for seamless real-time synchronization.
+A browser-based collaborative coding platform where multiple developers write, edit, and discuss code in real time. It has a React + Monaco frontend and a Node.js, Socket.IO and Redis backend. The backend ships with rate limiting, structured logging, Prometheus metrics and Swagger API docs.
 
-![DevCollab](https://img.shields.io/badge/DevCollab-Real--Time%20Collaboration-4ECDC4)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js)
-![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-4.0+-010101?logo=socket.io)
-![Redis](https://img.shields.io/badge/Redis-Latest-DC382D?logo=redis)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-010101?logo=socket.io)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis)
 
 ## Features
 
-### Core Functionality
-- **Real-time Code Synchronization** - See changes instantly as others type
-- **Multi-Language Support** - 12+ programming languages with syntax highlighting
-- **Live User Presence** - See who's currently in your coding session
-- **Integrated Chat** - Discuss code without leaving the editor
-- **Monaco Editor** - VS Code's powerful editor in your browser
-- **Room-based Sessions** - Create private rooms with unique IDs
-- **Persistent Sessions** - Rooms persist for 24 hours with Redis
+- **Real-time code sync** - changes broadcast instantly to everyone in the room
+- **Monaco Editor** - VS Code's editor in the browser, with 12+ languages
+- **Live presence and cursors** - see who is in the room and where they are typing
+- **Integrated chat** - discuss code without leaving the editor
+- **Room-based sessions** - create a room, share its ID, and collaborate. Rooms are stored in Redis and expire after 24 hours
+- **Connection resilience** - connection status indicator, retry logic and an error boundary on the client
+- **Production tooling** - rate limiting (HTTP and per-socket), Winston logging with daily rotation, Prometheus metrics, Swagger docs and health checks
 
-### Supported Languages
-JavaScript, TypeScript, Python, Java, C, C++, C#, Go, Rust, HTML, CSS, SQL
+**Supported languages:** JavaScript, TypeScript, Python, Java, C, C++, C#, Go, Rust, HTML, CSS, SQL
 
 ## Tech Stack
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Frontend** | React 18 + Vite | Fast, modern UI with hot module replacement |
-| **Editor** | Monaco Editor | Professional code editing experience |
-| **Backend** | Node.js + Express | RESTful API and WebSocket server |
-| **Real-time** | Socket.IO | Bidirectional real-time communication |
-| **Database** | Redis | In-memory storage for room sessions |
-| **Containerization** | Docker | Easy deployment and scaling |
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19, Vite 8, React Router 7, TypeScript (type-checking), `@monaco-editor/react` |
+| Backend | Node.js (ESM), Express 5, Socket.IO 4 |
+| Storage | Redis 7 (node-redis client) |
+| Observability | winston + daily-rotate-file, prom-client, Prometheus, Grafana |
+| API docs | swagger-jsdoc + swagger-ui-express |
+| Testing and quality | Vitest, Testing Library, Supertest, ESLint, Prettier |
+| Deployment | Docker / Docker Compose, Render (backend), Vercel (frontend) |
 
 ## Quick Start
 
 ### Prerequisites
 - Node.js 18+ and npm
-- Redis server (local or Docker)
-- Git
+- Redis (local, or via Docker)
 
-### Installation
+### Install
 
-1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/devcollab.git
+git clone <your-repo-url> devcollab
 cd devcollab
+
+cd server && npm install
+cd ../client && npm install
 ```
 
-2. **Install dependencies**
-```bash
-# Backend dependencies
-cd server
-npm install
+### Configure environment
 
-# Frontend dependencies
-cd ../client
-npm install
-```
-
-3. **Configure environment variables**
-
-Create `.env` in `server/`:
+`server/.env`:
 ```env
 PORT=3001
+NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 REDIS_URL=redis://localhost:6379
 ```
 
-Create `.env` in `client/`:
+`client/.env`:
 ```env
 VITE_SERVER_URL=http://localhost:3001
+
+# Optional tuning / feature flags
+# VITE_ENABLE_CHAT=true
+# VITE_ENABLE_CURSORS=true
+# VITE_ENABLE_LIVE_USERS=true
+# VITE_CODE_DEBOUNCE_MS=
+# VITE_CURSOR_DEBOUNCE_MS=
+# VITE_MAX_MESSAGE_LENGTH=
+# VITE_MAX_USERNAME_LENGTH=
 ```
 
-### Running the Application
+### Run locally
 
-#### Option 1: Local Development
-
-**Terminal 1 - Redis:**
 ```bash
-redis-server
+redis-server              # terminal 1
+cd server && npm run dev  # terminal 2 (nodemon)
+cd client && npm run dev  # terminal 3 (Vite)
 ```
 
-**Terminal 2 - Backend:**
-```bash
-cd server
-npm run dev
-```
+Open http://localhost:5173.
 
-**Terminal 3 - Frontend:**
-```bash
-cd client
-npm run dev
-```
-
-Open http://localhost:5173 in your browser.
-
-#### Option 2: Docker Compose
+### Run with Docker
 
 ```bash
-docker-compose up --build
+# Production-style stack (redis + server + client)
+docker compose up --build
+
+# Development with hot reload
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# Optional: Prometheus (9090) and Grafana (3000)
+docker compose -f docker-compose.monitoring.yml up -d
 ```
 
 ## Usage
 
-1. **Create a Room**
-   - Enter your name
-   - Click "Create Room"
-   - Share the Room ID with collaborators
-
-2. **Join a Room**
-   - Enter your name
-   - Paste the Room ID
-   - Click "Join Room"
-
-3. **Start Collaborating**
-   - Write code together in real-time
-   - Switch languages from the dropdown
-   - Chat with team members in the sidebar
-   - See active users with color indicators
+1. Enter your name and click **Create Room** (or paste a Room ID and click **Join Room**).
+2. Share the Room ID with collaborators.
+3. Code together, switch languages from the dropdown, and chat in the sidebar.
 
 ## Project Structure
 
 ```
 devcollab/
-├── server/                 # Backend Node.js application
+├── client/                      # React + Vite frontend
 │   ├── src/
-│   │   ├── index.js       # Express server setup
-│   │   ├── socket.js      # Socket.IO event handlers
-│   │   └── roomManager.js # Redis room management
-│   ├── package.json
-│   ├── Dockerfile
-│   └── .env
-│
-├── client/                 # Frontend React application
+│   │   ├── pages/               # HomePage, EditorPage
+│   │   ├── components/          # Editor, Sidebar, RoomShare, ConnectionStatus,
+│   │   │                        # ConnectionMonitor, ErrorBoundary, LoadingStates
+│   │   ├── hooks/               # useSocket, useSocketWithRetry, useAsyncData
+│   │   ├── utils/               # socketManager, roomUtils, debounce, logger
+│   │   ├── config.js            # Env-driven client config
+│   │   └── socket.js
+│   ├── tests/
+│   ├── nginx.conf, vercel.json, Dockerfile
+│   └── vite.config.js
+├── server/                      # Express + Socket.IO backend
 │   ├── src/
-│   │   ├── pages/         # React pages
-│   │   │   ├── HomePage.jsx
-│   │   │   └── EditorPage.jsx
-│   │   ├── components/    # Reusable components
-│   │   │   ├── Editor.jsx
-│   │   │   └── Sidebar.jsx
-│   │   ├── hooks/         # Custom React hooks
-│   │   │   └── useSocket.js
-│   │   ├── App.jsx        # Main app component
-│   │   └── socket.js      # Socket client setup
-│   ├── package.json
-│   └── .env
-│
-├── docker-compose.yml     # Docker orchestration
-├── .gitignore
-└── README.md
+│   │   ├── index.js             # App setup, health, metrics, Swagger
+│   │   ├── socket.js            # Socket.IO event handlers
+│   │   ├── roomManager.js       # Redis-backed room state
+│   │   ├── rateLimiter.js       # HTTP and socket rate limiting
+│   │   ├── swagger.js           # OpenAPI config
+│   │   ├── routes/roomRoutes.js # REST endpoints
+│   │   └── utils/               # logger, metrics, performanceMonitor, idGenerator
+│   ├── tests/
+│   └── Dockerfile
+├── shared/                      # Shared TypeScript types
+├── monitoring/prometheus.yml
+├── docs/                        # API.md, DEPLOYMENT.md, MONITORING.md
+├── docker-compose.yml           # redis + server + client
+├── docker-compose.dev.yml       # dev override (hot reload)
+├── docker-compose.monitoring.yml# Prometheus + Grafana
+└── render.yaml                  # Render blueprint
 ```
 
-## API & Events
+## API
 
-### Socket.IO Events
+### REST (prefix `/api`)
 
-#### Client → Server
-- `join-room` - Join a coding room
-- `code-change` - Broadcast code changes
-- `language-change` - Switch programming language
-- `send-message` - Send chat message
-- `cursor-move` - Share cursor position
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/rooms/create` | Create a room (strict rate limit) |
+| GET | `/api/rooms/validate/:roomId` | Check that a room exists |
+| GET | `/api/rooms/:roomId/info` | Get room details |
 
-#### Server → Client
-- `room-joined` - Confirmation with room state
-- `user-joined` - New user notification
-- `user-left` - User disconnection
-- `code-update` - Incoming code changes
-- `language-update` - Language switch notification
-- `receive-message` - Incoming chat message
+### Operational endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/health` | Health check (status, timestamp, uptime) |
+| `/metrics` | Prometheus metrics |
+| `/api-docs` | Swagger UI |
+| `/api-docs.json` | OpenAPI spec |
+| `/api-docs/socket` | Socket.IO event documentation |
+
+See [docs/API.md](docs/API.md) for full details.
+
+### Socket.IO events
+
+**Client → Server:** `join-room`, `code-change`, `language-change`, `send-message`, `cursor-move`, `ping`
+
+**Server → Client:** `room-joined`, `user-joined`, `user-left`, `code-update`, `language-update`, `receive-message`, `cursor-update`
+
+## Scripts
+
+Both `client/` and `server/` support:
+
+```bash
+npm test               # run tests (Vitest)
+npm run test:coverage  # coverage report
+npm run lint           # ESLint (lint:fix to auto-fix)
+npm run format         # Prettier (format:check to verify)
+```
+
+| Package | Extra scripts |
+|---------|---------------|
+| server | `npm run dev` (nodemon), `npm start` |
+| client | `npm run dev`, `npm run build` (tsc + vite build), `npm run build:analyze`, `npm run preview`, `npm run type-check` |
 
 ## Deployment
 
-### Deploy to Render
+- **Backend → Render:** `render.yaml` defines the web service (root `server`, health check `/health`). Set `REDIS_URL` and `CLIENT_URL` in the Render dashboard.
+- **Frontend → Vercel:** config in `client/vercel.json`. Set `VITE_SERVER_URL` to the backend URL.
+- **Docker:** `docker compose up --build -d`.
 
-1. **Backend Service**
-   - Create new Web Service on Render
-   - Connect GitHub repository
-   - Set root directory: `server`
-   - Build command: `npm install`
-   - Start command: `node src/index.js`
-   - Add Redis internal database
-
-2. **Frontend Static Site**
-   - Create new Static Site
-   - Set root directory: `client`
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-   - Set environment variable: `VITE_SERVER_URL`
-
-### Deploy with Docker
-
-```bash
-# Build and run with Docker Compose
-docker-compose up --build -d
-
-# Or build individually
-docker build -t devcollab-server ./server
-docker run -p 3001:3001 devcollab-server
-```
-
-## Development
-
-### Available Scripts
-
-**Backend:**
-```bash
-npm run dev    # Start with nodemon (auto-reload)
-npm start      # Start production server
-```
-
-**Frontend:**
-```bash
-npm run dev    # Start development server
-npm run build  # Build for production
-npm run preview # Preview production build
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/MONITORING.md](docs/MONITORING.md).
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| CORS errors | Check `CLIENT_URL` in server `.env` matches frontend URL |
+| CORS errors | Make sure `CLIENT_URL` on the server matches the frontend origin |
 | Redis connection failed | Ensure Redis is running: `redis-cli ping` |
-| Port already in use | Change ports in `.env` files |
-| Code not syncing | Check browser console for WebSocket errors |
-| Docker build fails | Ensure Docker daemon is running |
+| Port already in use | Change `PORT` in `server/.env` or the Vite port |
+| Code not syncing | Check the browser console for WebSocket errors and `VITE_SERVER_URL` |
+| HTTP 429 responses | You hit the rate limiter (15-minute window). Wait, or adjust `server/src/rateLimiter.js` |
 
-## Future Enhancements
+## Roadmap
 
-- [ ] File tree navigation for multiple files
-- [ ] Code execution with online compiler
-- [ ] Voice/video chat integration
-- [ ] Syntax error highlighting
-- [ ] Git integration
-- [ ] Custom themes
-- [ ] Code templates library
+- [ ] Multi-file / file tree support
+- [ ] In-browser code execution
+- [ ] Voice/video chat
+- [ ] User authentication and private room passwords
 - [ ] Export/download code
-- [ ] User authentication
-- [ ] Private room passwords
 
-## License
+## Contributing
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes and push the branch
+4. Open a Pull Request
 
 ## Acknowledgments
 
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) - The code editor that powers VS Code
-- [Socket.IO](https://socket.io/) - Real-time bidirectional event-based communication
-- [Redis](https://redis.io/) - In-memory data structure store
-- [Vite](https://vitejs.dev/) - Next generation frontend tooling
-
-## Support
-
-For issues, questions, or suggestions, please open an issue on GitHub or contact the maintainers.
-
----
-
-**Made with ❤️ by developers, for developers**
+[Monaco Editor](https://microsoft.github.io/monaco-editor/) · [Socket.IO](https://socket.io/) · [Redis](https://redis.io/) · [Vite](https://vitejs.dev/)
