@@ -1,12 +1,51 @@
 // server/src/roomManager.js
 import { createClient } from 'redis';
+import { log } from './utils/logger.js';
+
+const MAX_REDIS_RETRIES = 10;
 
 const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
+  socket: {
+    // Exponential backoff (100ms -> 3s). After MAX_REDIS_RETRIES the client
+    // gives up so a bad/deleted REDIS_URL fails loudly instead of looping forever.
+    reconnectStrategy: (retries) => {
+      if (retries >= MAX_REDIS_RETRIES) {
+        return new Error(`Redis unreachable after ${MAX_REDIS_RETRIES} retries`);
+      }
+      return Math.min(100 * 2 ** retries, 3000);
+    },
+  },
 });
 
-redisClient.on('error', (err) => console.log('Redis Error:', err));
-await redisClient.connect();
+// Log a short message (not the full stack) so a down Redis doesn't flood the logs.
+redisClient.on('error', (err) => log.error('Redis error', { error: err.message, code: err.code }));
+redisClient.on('ready', () => log.info('Redis connected'));
+
+try {
+  await redisClient.connect();
+} catch (err) {
+  log.error('Could not connect to Redis. Check REDIS_URL (host may be deleted or wrong).', {
+    error: err.message,
+    code: err.code,
+  });
+  // Exit non-zero so the platform marks the deploy as failed / restarts it.
+  process.exit(1);
+}
+
+/** True when the Redis client is connected and ready for commands. */
+export function isRedisReady() {
+  return redisClient.isReady;
+}
+
+/** Round-trip check used by /health. */
+export async function pingRedis() {
+  try {
+    return (await redisClient.ping()) === 'PONG';
+  } catch {
+    return false;
+  }
+}
 
 // Create a new room or retrieve existing one
 export async function getOrCreateRoom(roomId) {

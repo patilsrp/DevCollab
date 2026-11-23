@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { initSocket } from './socket.js';
 import roomRoutes from './routes/roomRoutes.js';
+import { pingRedis } from './roomManager.js';
 import { log, httpLogger, errorLogger } from './utils/logger.js';
 import { swaggerSpec, socketEventsDocs } from './swagger.js';
 import { metrics, metricsMiddleware } from './utils/metrics.js';
@@ -111,13 +112,15 @@ app.use('/api', roomRoutes);
  *             schema:
  *               $ref: '#/components/schemas/HealthResponse'
  */
-app.get('/health', (req, res) =>
-  res.json({
-    status: 'ok',
+app.get('/health', async (req, res) => {
+  const redisOk = await pingRedis();
+  res.status(redisOk ? 200 : 503).json({
+    status: redisOk ? 'ok' : 'degraded',
+    redis: redisOk ? 'up' : 'down',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-  })
-);
+  });
+});
 
 // Error logging middleware (must be last)
 app.use(errorLogger);
