@@ -202,6 +202,7 @@ export default function HomePage() {
           <input
             id={roomIdInputId}
             type="text"
+            autoComplete="off"
             placeholder="Paste a room ID"
             value={roomId}
             onChange={(e) => {
